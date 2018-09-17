@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # justin le tourneau Sep 16 2018
 # transforms Illumina Genotyping Report into a PED file with the help of SNP_Map file
-# version 1.0
+# version 1.1
 
 import argparse, sys, os, subprocess, re, datetime
 
@@ -68,7 +68,9 @@ def createPED(snp_map, report, output_name):
 				line = report_line.split()
 				if line[1] != current_sample:
 					if sample:
-						output_file.write('test %s 0 0 0 100 ' % current_sample)
+						# family sample parent1 parent2 sex phenotype
+						# not sure if we should make these fields dynamic or not
+						output_file.write('test %s 0 0 0 0 ' % current_sample)
 						for marker in markers:
 							if sample.has_key(marker):
 								output_file.write('%s ' % sample[marker])
