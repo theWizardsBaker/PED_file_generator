@@ -17,7 +17,7 @@ def create_sorted_SNP_Map(file):
 	print "Sorting SNP_Map"
 	# remove the header line
 	# sort and get unique npm_map file name's
-	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c > ped_snp_map.txt' % file)
+	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c > ped_snp_map.map' % file)
 
 def get_SNP_Map_marker_ids():
 	print "Loading SNP_Map marker ids"
@@ -26,7 +26,7 @@ def get_SNP_Map_marker_ids():
 	dupes = []
 	# get the duplicates
 	# found_duplicates = subprocess.check_output(['grep "^\s*\([2-9]\|\d\d\d*\)\s" /tmp/tmp_snp_map.txt | awk \'{$1=""}1\''], shell=True)
-	marker_ids = subprocess.check_output(['awk \'{print $1 " " $3}\' ped_snp_map.txt'], shell=True)
+	marker_ids = subprocess.check_output(['awk \'{print $1 " " $3}\' ped_snp_map.map'], shell=True)
 	marker_ids = marker_ids.rstrip().split('\n')
 	# go through each marker
 	for marker in marker_ids:
@@ -42,11 +42,18 @@ def get_SNP_Map_marker_ids():
 	# return list(map(lambda x: (x.split())[1], dupes))
 	return markers
 
-def createPED(snp_map, report, output_name, family, phenotype):
+def get_phenotype_from_file(file):
+	print "Loading Phenotypes from %s" % file
+	return [line.rstrip('\n') for line in open(file)]
+
+def createPED(snp_map, report, output_name, snp_output_name, family, phenotype, phenotype_file):
 	check_file(snp_map, "SNP Map")
 	check_file(report, "Illumina Genotyping Report")
 	create_sorted_SNP_Map(snp_map)
 	markers = get_SNP_Map_marker_ids()
+	# see if we have a list of phenotypes
+	pheno_list = get_phenotype_from_file(phenotype_file) if phenotype_file else None
+
 	print "Generating PED file..."
 	# walk through report file
 	with open(report, 'r') as report_file, open(output_name, 'w') as output_file:
@@ -55,6 +62,7 @@ def createPED(snp_map, report, output_name, family, phenotype):
 		# get the [Data] heading
 		start_pos = int((data_start.split(':'))[0])
 		current_sample = ''
+		current_sample_count = -1
 		sample = {}
 		#write header
 		output_file.write("#Generated at %s\n#family sample parent1 parent2 sex phenotype" % datetime.datetime.now())
@@ -70,7 +78,14 @@ def createPED(snp_map, report, output_name, family, phenotype):
 					if sample:
 						# family sample parent1 parent2 sex phenotype
 						# not sure if we should make these fields dynamic or not
-						output_file.write('%s %s 0 0 0 %s ' % (family, current_sample, phenotype))
+						if pheno_list:
+							try:
+								output_file.write('%s %s 0 0 0 %s ' % (family, current_sample, pheno_list[current_sample_count]))
+							except:
+								output_file.write('%s %s 0 0 0 %s ' % (family, current_sample, phenotype))
+						else:
+							output_file.write('%s %s 0 0 0 %s ' % (family, current_sample, phenotype))
+
 						for marker in markers:
 							if sample.has_key(marker):
 								output_file.write('%s ' % sample[marker])
@@ -81,22 +96,26 @@ def createPED(snp_map, report, output_name, family, phenotype):
 
 					sample = {}
 					current_sample = line[1]
+					current_sample_count += 1
 
 				# set 00's if we find --
 				sample[line[0]] = (line[6] if line[6] != '-' else '0') + (line[7] if line[7] != '-' else '0')
 
 	# print "Cleaning up tmp files..."
 	# os.remove('/tmp/tmp_snp_map.txt')
-	print "\nDone!"
+	print "\nDone!\n"
 	print "Your output is located in this directory in the file '%s'" % output_name
+	print "The corresponding SNP_Map file is '%s'" % snp_output_name
 
 # setup arguments / help
 parser = argparse.ArgumentParser(description='Program to combine a SNP_Map and Illumina Genotyping Report to PED file')
 parser.add_argument('SNP Map', help='SNP_Map file to parse')
 parser.add_argument('Genotype Report', help='Illumina Genotyping Report')
 parser.add_argument('-o', '--output', default='gen_output.ped', type=str, help='Name of the output PED file')
-parser.add_argument('-f', '--family', default='test', type=str, help='Value of the Family column')
-parser.add_argument('-p', '--phenotype', default='1', type=str, help='Value of the Phonetype column')
+parser.add_argument('-m', '--mapfile', default='gen_snp_map.map', type=str, help='Name of the output MAP file')
+parser.add_argument('-f', '--family', default='test', type=str, help='Value of the Family column (default test)')
+parser.add_argument('-p', '--phenotype', default='1', type=str, help='Value of the Phonetype column (default 1)')
+parser.add_argument('-l', '--phenotype-list', default=None, type=str, help='File of Phenotypes for each sample')
 args = parser.parse_args()
 
 #check we have the appropriate arguments
@@ -106,8 +125,9 @@ if len(sys.argv) >= 2:
 	createPED(var_arguments['SNP Map'],
 			  var_arguments['Genotype Report'],
 			  var_arguments['output'],
+			  var_arguments['mapfile'],
 			  var_arguments['family'],
-			  var_arguments['phenotype'])
+			  var_arguments['phenotype'],
+			  var_arguments['phenotype_list'])
 else:
 	print_error("please specify a SNP_Map and Illumina Genotype Report")
-
