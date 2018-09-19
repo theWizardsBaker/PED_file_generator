@@ -94,7 +94,7 @@ def createPED(snp_map, report, output_name, family, phenotype):
 parser = argparse.ArgumentParser(description='Program to combine a SNP_Map and Illumina Genotyping Report to PED file')
 parser.add_argument('SNP Map', help='SNP_Map file to parse')
 parser.add_argument('Genotype Report', help='Illumina Genotyping Report')
-parser.add_argument('-o', '--output', default='output.ped', type=str, help='Name of the output PED file')
+parser.add_argument('-o', '--output', default='gen_output.ped', type=str, help='Name of the output PED file')
 parser.add_argument('-f', '--family', default='test', type=str, help='Value of the Family column')
 parser.add_argument('-p', '--phenotype', default='1', type=str, help='Value of the Phonetype column')
 args = parser.parse_args()
