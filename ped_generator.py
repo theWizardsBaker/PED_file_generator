@@ -31,7 +31,7 @@ def get_SNP_Map_marker_ids(file):
 	marker_ids = marker_ids.rstrip().split('\n')
 	with open(file, 'w') as map_file:
 		# create .map file
-		map_file.write('#Chromosome Name Position Distance\n')
+		map_file.write('#Chromosome Name Distance Position\n')
 		# go through each marker
 		for marker in marker_ids:
 			mark = marker.split(' ')
@@ -40,7 +40,7 @@ def get_SNP_Map_marker_ids(file):
 				markers.append(mark[1])
 				pos = int(mark[3])
 				dist =  pos / 1000000 if pos > 0 else 0
-				map_file.write('%s %s %s %s\n' % (mark[1], mark[2], pos, dist))
+				map_file.write('%s %s %s %s\n' % (mark[2], mark[1], dist, pos))
 			else:
 				dupes.append(mark[1])
 	#warn the user of dupes
@@ -145,5 +145,3 @@ if len(sys.argv) >= 2:
 			  var_arguments['phenotype_list'])
 else:
 	print_error("please specify a SNP_Map and Illumina Genotype Report")
-
-	#chromosome snipid/name position
