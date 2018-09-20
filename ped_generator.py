@@ -17,29 +17,42 @@ def create_sorted_SNP_Map(file):
 	print "Sorting SNP_Map"
 	# remove the header line
 	# sort and get unique npm_map file name's
-	os.system('echo "Index Name Chromosome Position GenTrain Score NP ILMN Strand Customer Strand NormID" > ped_snp_map.map')
-	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c >> ped_snp_map.map' % file)
+	# os.system('echo "Index Name Chromosome Position GenTrain Score NP ILMN Strand Customer Strand NormID" > ped_snp_map.map')
+	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c > /tmp/ped_snp_map.map' % file)
 
-def get_SNP_Map_marker_ids():
+def get_SNP_Map_marker_ids(file):
 	print "Loading SNP_Map marker ids"
 	# markers to return
 	markers = []
 	dupes = []
 	# get the duplicates
 	# found_duplicates = subprocess.check_output(['grep "^\s*\([2-9]\|\d\d\d*\)\s" /tmp/tmp_snp_map.txt | awk \'{$1=""}1\''], shell=True)
-	marker_ids = subprocess.check_output(['awk \'{print $1 " " $3}\' ped_snp_map.map'], shell=True)
+	marker_ids = subprocess.check_output(['awk \'{print $1 " " $3 " " $4 " " $5}\' /tmp/ped_snp_map.map'], shell=True)
 	marker_ids = marker_ids.rstrip().split('\n')
-	# go through each marker
-	for marker in marker_ids:
-		mark = marker.split(' ')
-		# if it is only in the SNP file once, add it
-		markers.append(mark[1]) if mark[0] == '1' else dupes.append(mark[1])
+	with open(file, 'w') as map_file:
+		# create .map file
+		map_file.write('#Chromosome Name Position Distance\n')
+		# go through each marker
+		for marker in marker_ids:
+			mark = marker.split(' ')
+			# if it is only in the SNP file once, add it
+			if mark[0] == '1':
+				markers.append(mark[1])
+				pos = int(mark[3])
+				dist =  pos / 1000000 if pos > 0 else 0
+				map_file.write('%s %s %s %s\n' % (mark[1], mark[2], pos, dist))
+			else:
+				dupes.append(mark[1])
 	#warn the user of dupes
-	if len(dupes) > 0:
-		print "\nDuplicates in SNP Map found. \nThe following will be omitted from the PED file: \n"
-		for d in dupes:
-			print d
-		print "\n"
+	with open('snp_map_duplicates.txt', 'w') as dupe_file:
+		if len(dupes) > 0:
+			msg = "Duplicates in SNP Map found. \nThe following will be omitted from the PED file: \n"
+			print msg
+			dupe_file.write(msg)
+			for d in dupes:
+				print d
+				dupe_file.write("%s\n" % d)
+			print "\n"
 	# return list(map(lambda x: (x.split())[1], dupes))
 	return markers
 
@@ -51,7 +64,7 @@ def createPED(snp_map, report, output_name, snp_output_name, family, phenotype, 
 	check_file(snp_map, "SNP Map")
 	check_file(report, "Illumina Genotyping Report")
 	create_sorted_SNP_Map(snp_map)
-	markers = get_SNP_Map_marker_ids()
+	markers = get_SNP_Map_marker_ids(snp_output_name)
 	# see if we have a list of phenotypes
 	pheno_list = get_phenotype_from_file(phenotype_file) if phenotype_file else None
 
@@ -102,8 +115,8 @@ def createPED(snp_map, report, output_name, snp_output_name, family, phenotype, 
 				# set 00's if we find --
 				sample[line[0]] = (line[6] if line[6] != '-' else '0') + (line[7] if line[7] != '-' else '0')
 
-	# print "Cleaning up tmp files..."
-	# os.remove('/tmp/tmp_snp_map.txt')
+	print "Cleaning up tmp files..."
+	os.remove('/tmp/ped_snp_map.map')
 	print "\nDone!\n"
 	print "Your output is located in this directory in the file '%s'" % output_name
 	print "The corresponding SNP_Map file is '%s'" % snp_output_name
@@ -132,3 +145,5 @@ if len(sys.argv) >= 2:
 			  var_arguments['phenotype_list'])
 else:
 	print_error("please specify a SNP_Map and Illumina Genotype Report")
+
+	#chromosome snipid/name position
