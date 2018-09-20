@@ -17,7 +17,8 @@ def create_sorted_SNP_Map(file):
 	print "Sorting SNP_Map"
 	# remove the header line
 	# sort and get unique npm_map file name's
-	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c > ped_snp_map.map' % file)
+	os.system('echo "Index Name Chromosome Position GenTrain Score NP ILMN Strand Customer Strand NormID" > ped_snp_map.map')
+	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c >> ped_snp_map.map' % file)
 
 def get_SNP_Map_marker_ids():
 	print "Loading SNP_Map marker ids"
