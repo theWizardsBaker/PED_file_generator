@@ -32,17 +32,21 @@ def get_SNP_Map_marker_ids(file):
 	with open(file, 'w') as map_file:
 		# create .map file
 		map_file.write('#Chromosome Name Distance Position\n')
-		# go through each marker
-		for marker in marker_ids:
-			mark = marker.split(' ')
-			# if it is only in the SNP file once, add it
-			if mark[0] == '1':
-				markers.append(mark[1])
-				pos = int(mark[3])
-				dist =  pos / 1000000 if pos > 0 else 0
-				map_file.write('%s %s %s %s\n' % (mark[2], mark[1], dist, pos))
-			else:
-				dupes.append(mark[1])
+			# go through each marker
+			for marker in marker_ids:
+				mark = marker.split(' ')
+				# if it is only in the SNP file once, add it
+				if mark[0] == '1':
+					markers.append(mark[1])
+					try:
+						pos = int(mark[3])
+					except:
+						pos = 0
+						print "Marker had non-number position: %s" % mark[1]
+					dist =  pos / 1000000 if pos > 0 else 0
+					map_file.write('%s %s %s %s\n' % (mark[2], mark[1], dist, pos))
+				else:
+					dupes.append(mark[1])
 	#warn the user of dupes
 	with open('snp_map_duplicates.txt', 'w') as dupe_file:
 		if len(dupes) > 0:
@@ -116,7 +120,7 @@ def createPED(snp_map, report, output_name, snp_output_name, family, phenotype, 
 				sample[line[0]] = (line[6] if line[6] != '-' else '0') + (line[7] if line[7] != '-' else '0')
 
 	print "Cleaning up tmp files..."
-	os.remove('/tmp/ped_snp_map.map')
+	# os.remove('/tmp/ped_snp_map.map')
 	print "\nDone!\n"
 	print "Your output is located in this directory in the file '%s'" % output_name
 	print "The corresponding SNP_Map file is '%s'" % snp_output_name
