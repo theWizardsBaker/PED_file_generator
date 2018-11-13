@@ -23,9 +23,9 @@ def create_sorted_SNP_Map(file):
 def get_chromosome_count(file):
 	print "Counting Chromosomes"
 	# get the 3rd column (chromosome), sort, unique, get the last (greatest) element
-	os.system('cut -f3 %s | sort -n | uniq | tail -1' % file)
+	return subprocess.check_output("cut -f3 %s | sort -n | uniq | tail -1" % file, shell=True)
 
-def get_SNP_Map_marker_ids(file):
+def get_SNP_Map_marker_ids(file, total_chrom_count):
 	print "Loading SNP_Map marker ids"
 	# markers to return
 	markers = []
@@ -45,11 +45,23 @@ def get_SNP_Map_marker_ids(file):
 				markers.append(mark[1])
 				try:
 					pos = int(mark[3])
-				except: 
+				except:
 					pos = 0
 					print "WARNING tried to convert %s to int from %s" % (mark[3], mark[1])
 				dist =  pos / 1000000 if pos > 0 else 0
-				map_file.write('%s %s %s %s\n' % (mark[2], mark[1], dist, pos))
+				# check the chromosome column
+				chrom = mark[2]
+				# add an integer value to the chromosome
+				if mark[2] == 'X':
+					chrom = total_chrom_count + 1
+				elif mark[2] == 'Y':
+					chrom = total_chrom_count + 2
+				elif mark[2] == 'XY':
+					chrom = total_chrom_count + 3
+				elif mark[2] == 'MT':
+					chrom = total_chrom_count + 4
+				# write line to file
+				map_file.write('%s %s %s %s\n' % (chrom, mark[1], dist, pos))
 			else:
 				dupes.append(mark[1])
 	#warn the user of dupes
@@ -73,7 +85,7 @@ def createPED(snp_map, report, output_name, snp_output_name, family, phenotype, 
 	check_file(snp_map, "SNP Map")
 	check_file(report, "Illumina Genotyping Report")
 	create_sorted_SNP_Map(snp_map)
-	markers = get_SNP_Map_marker_ids(snp_output_name)
+	markers = get_SNP_Map_marker_ids(snp_output_name, int(get_chromosome_count(snp_map)))
 	# see if we have a list of phenotypes
 	pheno_list = get_phenotype_from_file(phenotype_file) if phenotype_file else None
 
@@ -161,11 +173,11 @@ else:
 # X = n + 1
 # Y = n + 2
 # XY = n + 3
+# MT = n + 4
 
 # n is equal to the number of chromosomes in the animal
 
-#  if we have a number, however, use that instead
+# if we have a number, however, use that instead
 
 # get the highest chromosome number unless specified
 
-# MT = n + 4
