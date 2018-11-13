@@ -20,6 +20,11 @@ def create_sorted_SNP_Map(file):
 	# os.system('echo "Index Name Chromosome Position GenTrain Score NP ILMN Strand Customer Strand NormID" > ped_snp_map.map')
 	os.system('sed 1d %s | sort -k2 | uniq -f1 -i -c > /tmp/ped_snp_map.map' % file)
 
+def get_chromosome_count(file):
+	print "Counting Chromosomes"
+	# get the 3rd column (chromosome), sort, unique, get the last (greatest) element
+	os.system('cut -f3 %s | sort -n | uniq | tail -1' % file)
+
 def get_SNP_Map_marker_ids(file):
 	print "Loading SNP_Map marker ids"
 	# markers to return
@@ -149,3 +154,18 @@ if len(sys.argv) >= 2:
 			  var_arguments['phenotype_list'])
 else:
 	print_error("please specify a SNP_Map and Illumina Genotype Report")
+
+
+# if we have an x or y or xy or mt
+# we want to use this formula:
+# X = n + 1
+# Y = n + 2
+# XY = n + 3
+
+# n is equal to the number of chromosomes in the animal
+
+#  if we have a number, however, use that instead
+
+# get the highest chromosome number unless specified
+
+# MT = n + 4
